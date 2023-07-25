@@ -66,8 +66,11 @@ class World : private sf::NonCopyable
         const int TILEFLOORHEIGHT;        //= 40;
         const int CAM_MOVE_SPEED ;        //= 5;
         const int OUTSIDE_DECORATION_PCT; //= 20;
+
         void fillTextureMaps();
+        void decorateMap();
         void readLevelsFile(std::string pathFile);
+        void runLevel();
         void drawTilemap(sf::FloatRect rect, const sf::Texture& tex);
         void drawMap();
 };

@@ -33,6 +33,7 @@ World::World(sf::RenderWindow& outputTarget)
     onUserCreated();
 
     readLevelsFile("res/lvl/test1.txt");
+    runLevel();
 }
 
 World::~World()
@@ -157,133 +158,18 @@ void World::fillTextureMaps()
     };
 }
 
+void World::decorateMap()
+{
+
+}
+
 void World::readLevelsFile(std::string pathFile)
 {
-    /*
-    int maxWidth = -1;
-    QStringList dataContent;
-    QFile file(pathFile);
-    if(file.open(QIODevice::ReadOnly))
-    {
-        qDebug() << "file is open";
-        QTextStream stream(&file);
-        while(!stream.atEnd())
-        {
-            QString line = stream.readLine();
-            if(line.startsWith(";"))
-            {
-                continue;
-            }
-            if(!line.isEmpty())
-            {
-                dataContent.push_back(line);
-            }
-            else if (line.isEmpty() && dataContent.length() > 0)
-            {
-                if(!dataContent.size())
-                {
-                    continue;
-                }
-                //Find the longest row in the map
-                for(int i = 0; i < dataContent.size(); ++i)
-                {
-                    if(dataContent[i].length() > maxWidth)
-                    {
-                        maxWidth = dataContent[i].length();
-                    }
-                }
-                //Be sure map is rectange
-                for(int i = 0; i < dataContent.size(); ++i)
-                {
-
-                    if(dataContent[i].length() < maxWidth)
-                    {
-                        for(int j = 0; j <= maxWidth-dataContent[i].length(); ++j)
-                        {
-                            dataContent[i] += " ";
-                        }
-                    }
-                }
-
-                //Resize and fill map object
-                QList<QList<QChar> > mapObj;
-                mapObj.resize(maxWidth);
-
-                for(int y = 0; y < dataContent.size(); ++y)
-                {
-                    for(int x = 0; x < maxWidth; ++x)
-                    {
-                        if(dataContent[y][x] == QChar('-'))
-                        {
-                            dataContent[y][x] = QChar(' ');
-                        }
-                        mapObj[x].push_back(dataContent[y][x]);
-                    }
-                }
-                //Loop through the spaces in the map and find the @, ., and $
-                //characters for the starting game state.
-
-                QPoint startPos;
-                QList<QPoint> goals;
-                QList<QPoint> stars;
-                for(int x = 0; x < maxWidth; ++x)
-                {
-                    for(int y = 0; y < mapObj[x].length(); ++y)
-                    {
-                        if(mapObj[x][y] == QChar('@') || mapObj[x][y] == QChar('+'))
-                        {
-                            // '@' is player, '+' is player & goal
-                            startPos.setX(x);
-                            startPos.setY(y);
-                        }
-                        if(mapObj[x][y] == QChar('.') || mapObj[x][y] == QChar('+') || mapObj[x][y] == QChar('*'))
-                        {
-                            // '.' is goal, '*' is star & goal
-                            QPoint p(x,y);
-                            goals.push_back(p);
-                        }
-                        if(mapObj[x][y] == QChar('$') || mapObj[x][y] == QChar('*'))
-                        {
-                            // '$' is star
-                            QPoint p(x,y);
-                            stars.push_back(p);
-                        }
-                    }
-                }
-                ////////////
-                GameState gameStateObj;
-                gameStateObj.player = startPos;
-                gameStateObj.stepCounter = 0;
-                gameStateObj.stars = stars;
-
-                Level levelObj;
-                levelObj.width  = maxWidth;
-                levelObj.height = dataContent.length();
-                levelObj.mapObj = mapObj;
-                levelObj.goals  = goals;
-                levelObj.startState = gameStateObj;
-
-                m_levels.push_back(levelObj);
-                ///clear
-                dataContent.clear();
-                maxWidth = -1;
-                mapObj.clear();
-            }
-        }
-    }
-    else{
-        qDebug() << "file is not open";
-    }
-    file.close();
-    */
-    // Create a text string, which is used to output the text file
     std::string text;
     std::vector< std::string > dataContent;
     int maxWidth = -1;
-    // Read from the text file
     std::ifstream readFile(pathFile);
 
-    // Use a while loop together with the getline() function to read the file line by line
     while (getline (readFile, text)) {
         // Output the text from the file
         std::cout << text << std::endl;
@@ -396,6 +282,21 @@ void World::readLevelsFile(std::string pathFile)
     readFile.close();
 }
 
+void World::runLevel()
+{
+    m_mapObj.clear();
+
+
+    m_levelObj     = m_levels[m_currentLevelIndex];
+    m_mapObj       = m_levelObj.mapObj;
+    m_gameStateObj = m_levelObj.startState;
+
+    decorateMap();
+    m_mapNeedsRedraw = true;
+    m_cameraOffsetX = m_cameraOffsetY = 0;
+    m_levelIsCompleted = false;
+}
+
 void World::drawTilemap(sf::FloatRect rect, const sf::Texture &tex)
 {
     sf::Sprite sprite(tex);
@@ -406,9 +307,9 @@ void World::drawTilemap(sf::FloatRect rect, const sf::Texture &tex)
 
 void World::drawMap()
 {
-    std::vector < sf::Vector2i> goals = m_levels[0].goals;
-    m_mapObj = m_levels[0].mapObj;
-    m_gameStateObj = m_levels[0].startState;
+    std::vector < sf::Vector2i> goals = m_levelObj.goals;
+    //m_mapObj = m_levels[m_currentLevelIndex].mapObj;
+    //m_gameStateObj = m_levels[m_currentLevelIndex].startState;
     for(int x = 0; x < int(m_mapObj.size()); ++x)
     {
         for(int y = 0; y < int(m_mapObj[x].size()); ++y)
