@@ -16,6 +16,7 @@
 World::World(sf::RenderWindow& outputTarget)
     : mTarget(outputTarget),
       mTextures(),
+      mFonts(),
       m_currentLevelIndex(0),
       m_currentImageIndex(0),
       m_mapNeedsRedraw(false),
@@ -29,10 +30,11 @@ World::World(sf::RenderWindow& outputTarget)
       OUTSIDE_DECORATION_PCT(20)
 {
     loadTextures();
+    loadFonts();
     fillTextureMaps();
     onUserCreated();
 
-    readLevelsFile("res/lvl/test1.txt");
+    readLevelsFile("res/lvl/starPusherLevels.txt");
     runLevel();
 }
 
@@ -40,44 +42,157 @@ World::~World()
 {
 }
 
-void World::update(sf::Time time)
+void World::update(sf::Time)
 {
-    for (auto& unit : vecUnits)
-    {
-        float fAngleToNewTarget = atan2(unit.vPosition.y - vTarget.y, unit.vPosition.x - vTarget.x) + 3.14159f;
-        float delta = circ_shortdiff(unit.fHeading, fAngleToNewTarget, 0.0f, 2.0f * 3.14159f);
-        unit.fHeading = circ_add(unit.fHeading, delta * 0.1f * 10.0f, 0.0f, 2.0f * 3.14159f);
-        unit.sprite.setOrigin(0, 0);
-        unit.sprite.setPosition(unit.vPosition.x, unit.vPosition.y);
-        unit.sprite.setOrigin(16, 15);
-        unit.sprite.setRotation(unit.fHeading * (180.0f/3.14f));
-    }
 
 }
 
 void World::draw()
 {
-    mTarget.clear();
-//    drawEyes();
-//    drawHero();
-    drawMap();
-    mTarget.display();
+    if(m_mapNeedsRedraw)
+    {
+        mTarget.clear();
+        drawMap();
+        if(m_levelIsCompleted)
+        {
+            drawWinText();
+        }
+        drawCurentLevelStatus();
+        drawStepCounter();
+        mTarget.display();
+    }
 }
 
 void World::processInput(const sf::Event &event)
 {
-    if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
+    if(!m_mapNeedsRedraw)
     {
-        vTarget = sf::Vector2f(sf::Mouse::getPosition(mTarget));
+        return;
     }
-}
+    m_input.playerMove = "NONE";
+    int mapWidth = m_mapObj.size() * TILEWIDTH;
+    int mapHeight = (m_mapObj[0].size() - 1) * TILEFLOORHEIGHT + TILEHEIGHT;
+    m_input.cameraUp = false;
+    m_input.cameraDown = false;
+    m_input.cameraLeft = false;
+    m_input.cameraRight = false;
+    m_input.MAX_CAM_X_PAN = std::abs(Application::HALF_HEIGHT - int(mapHeight)) + TILEWIDTH;
+    m_input.MAX_CAM_Y_PAN = std::abs(Application::HALF_WIDTH  - int(mapWidth)) +  TILEHEIGHT;
 
+    if(event.type == sf::Event::KeyReleased && m_levelIsCompleted)
+    {
+        nextLevel();
+        m_input.playerMove = "NONE";
+        m_mapNeedsRedraw = true;
+    }
+
+    if(event.type == sf::Event::KeyReleased)
+    {
+        if(event.key.code == sf::Keyboard::Down)
+        {
+            m_input.playerMove = "DOWN";
+        }
+        else if(event.key.code == sf::Keyboard::Right)
+        {
+            m_input.playerMove = "RIGHT";
+        }
+        else if(event.key.code == sf::Keyboard::Left)
+        {
+            m_input.playerMove = "LEFT";
+        }
+        else if(event.key.code == sf::Keyboard::Up)
+        {
+            m_input.playerMove = "UP";
+        }
+        else if(event.key.code == sf::Keyboard::N)
+        {
+            m_mapNeedsRedraw = true;
+            //next
+            nextLevel();
+        }
+        else if(event.key.code == sf::Keyboard::B)
+        {
+            m_mapNeedsRedraw = true;
+            //next
+            previousLevel();
+        }
+        else if(event.key.code == sf::Keyboard::R)
+        {
+            //reset
+            runLevel();
+        }
+        else if(event.key.code == sf::Keyboard::P)
+        {
+            //backspace 'reset'
+            m_currentImageIndex += 1;
+            if(m_currentImageIndex >= int(PLAYERIMAGES.size()))
+            {
+                m_currentImageIndex = 0;
+            }
+            m_mapNeedsRedraw = true;
+            draw();
+        }
+    }
+
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+    {
+        m_input.cameraLeft = true;
+    }
+    else if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+    {
+        m_input.cameraRight = true;
+    }
+    else if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+    {
+        m_input.cameraDown = true;
+    }
+    else if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+    {
+        m_input.cameraUp = true;
+    }
+
+    if(m_input.playerMove != "NONE" && !m_levelIsCompleted)
+    {
+        bool moved = makeMove(m_input.playerMove);
+        if(moved)
+        {
+            m_gameStateObj.stepCounter += 1;
+            m_mapNeedsRedraw = true;
+        }
+        if(isLevelFinished())
+        {
+            m_levelIsCompleted = true;
+        }
+        draw();
+    }
+
+    if( m_input.cameraUp && m_cameraOffsetY < m_input.MAX_CAM_X_PAN)
+    {
+        m_cameraOffsetY += CAM_MOVE_SPEED;
+        m_mapNeedsRedraw = true;
+    }
+    else if(m_input.cameraDown && m_cameraOffsetY > -m_input.MAX_CAM_X_PAN)
+    {
+        m_cameraOffsetY -= CAM_MOVE_SPEED;
+        m_mapNeedsRedraw = true;
+    }
+    if(m_input.cameraLeft && m_cameraOffsetX < m_input.MAX_CAM_Y_PAN)
+    {
+        m_cameraOffsetX += CAM_MOVE_SPEED;
+        m_mapNeedsRedraw = true;
+    }
+    else if(m_input.cameraRight && m_cameraOffsetX > -m_input.MAX_CAM_Y_PAN)
+    {
+        m_cameraOffsetX -= CAM_MOVE_SPEED;
+        m_mapNeedsRedraw = true;
+    }
+
+    if(m_mapNeedsRedraw)
+        draw();
+}
 
 void World::loadTextures()
 {
- //   mTextures.load(Textures::Eye,  "res/eye.png");
-  //  mTextures.load(Textures::Hero, "res/hero.png");
-
     mTextures.load(Textures::UncoveredGoal, "res/sprite/redselector.png");
     mTextures.load(Textures::CoveredGoal,   "res/sprite/selector.png");
     mTextures.load(Textures::Star,          "res/sprite/star.png");
@@ -100,37 +215,12 @@ void World::loadTextures()
 
 void World::loadFonts()
 {
-
+    mFonts.load(Fonts::Main, "res/fonts/juniory.ttf");
 }
 
 void World::onUserCreated()
 {
-    int nUnits = 60;
-//    for (int i = 0; i < nUnits; i++)
-//    {
-//        vecUnits.push_back(
-//                    //angle, pos, target, sf::sprite
-//                    { 0.0f, sf::Vector2f(rand()%Application::SCREEN_WIDTH, rand()% Application::SCREEN_HEIGHT), sf::Vector2f(0.0f, 0.0f), sf::Sprite(mTextures.get(Textures::Eye))});
 
-
-//    }
-}
-
-void World::drawEyes()
-{
-    for(const Unit &u : vecUnits)
-    {
-        mTarget.draw(u.sprite);
-    }
-}
-
-void World::drawHero()
-{
-    sf::Sprite heroSprite;
-    heroSprite.setTexture(mTextures.get(Textures::Hero));
-    heroSprite.setOrigin(16, 16);
-    heroSprite.setPosition(vTarget.x, vTarget.y);
-    mTarget.draw(heroSprite);
 }
 
 void World::fillTextureMaps()
@@ -160,7 +250,51 @@ void World::fillTextureMaps()
 
 void World::decorateMap()
 {
+    // Remove the non-wall characters from the map data
+    sf::Vector2i startPos = m_gameStateObj.playerPos;
+    for(int x = 0; x < int(m_mapObj.size()); ++x)
+    {
+        for(int y = 0; y < int(m_mapObj[0].size()); ++y)
+        {
+            if(     m_mapObj[x][y] == '$' ||
+                    m_mapObj[x][y] == '.' ||
+                    m_mapObj[x][y] == '@' ||
+                    m_mapObj[x][y] == '+' ||
+                    m_mapObj[x][y] == '*' )
+            {
+                m_mapObj[x][y] = ' ';
+            }
+        }
+    }
+    // Flood fill to determine inside/outside floor tiles.
+    floodFill(startPos.x, startPos.y, ' ', 'o');
+    //Convert the adjoined walls into corner tiles.
+    for(int x = 0; x < int(m_mapObj.size()); ++x)
+    {
+        for(int y = 0; y < int(m_mapObj[0].size()); ++y)
+        {
+            if(m_mapObj[x][y] == '#' )
+            {
+                if( (isWall(x, y-1) && isWall(x+1, y) ) ||
+                    (isWall(x+1, y) && isWall(x, y+1) ) ||
+                    (isWall(x, y+1) && isWall(x-1, y) ) ||
+                    (isWall(x-1, y) && isWall(x, y-1) )  )
+                {
+                    m_mapObj[x][y] = 'x';
+                }
+            }
+            else if(m_mapObj[x][y] == ' ' &&
+                    rand()%100 < OUTSIDE_DECORATION_PCT)
+            {
+                int size = OUTSIDEDECOMAPPING.size();
+                int randomIdx = rand() % size;
+                char keys[4] = {'1', '2', '3', '4'};
+                char c = keys[randomIdx];
+                m_mapObj[x][y] = c;
+            }
 
+        }
+    }
 }
 
 void World::readLevelsFile(std::string pathFile)
@@ -308,8 +442,6 @@ void World::drawTilemap(sf::FloatRect rect, const sf::Texture &tex)
 void World::drawMap()
 {
     std::vector < sf::Vector2i> goals = m_levelObj.goals;
-    //m_mapObj = m_levels[m_currentLevelIndex].mapObj;
-    //m_gameStateObj = m_levels[m_currentLevelIndex].startState;
     for(int x = 0; x < int(m_mapObj.size()); ++x)
     {
         for(int y = 0; y < int(m_mapObj[x].size()); ++y)
@@ -347,15 +479,11 @@ void World::drawMap()
                     pixmap = mTextures.get(Textures::CoveredGoal);
                     drawTilemap(spaceRect, pixmap);
                 }
-                pixmap = TILEMAPPING[' '];
-                drawTilemap(spaceRect, pixmap);
                 pixmap = mTextures.get(Textures::Star);
                 drawTilemap(spaceRect, pixmap);
             }
             else if(std::find(goals.begin(), goals.end(), sf::Vector2i(x,y)) != goals.end())
             {
-                pixmap = TILEMAPPING[' '];
-                drawTilemap(spaceRect, pixmap);
                 pixmap = mTextures.get(Textures::UncoveredGoal);
                 drawTilemap(spaceRect, pixmap);
             }
@@ -363,8 +491,6 @@ void World::drawMap()
 
             if(m_gameStateObj.playerPos == sf::Vector2i(x, y))
             {
-                pixmap = TILEMAPPING[' '];
-                drawTilemap(spaceRect, pixmap);
                 pixmap = PLAYERIMAGES.at(m_currentImageIndex);
                 drawTilemap(spaceRect, pixmap);
             }
@@ -372,3 +498,189 @@ void World::drawMap()
         }
     }
 }
+
+void World::drawStepCounter()
+{
+    sf::Text text;
+    text.setString(sf::String("Steps: ")+sf::String(std::to_string(m_gameStateObj.stepCounter)));
+    text.setFont(mFonts.get(Fonts::Main));
+    int mapHeight = (m_mapObj[0].size() - 1) * TILEFLOORHEIGHT + TILEHEIGHT;
+    sf::Vector2i point = sf::Vector2i(m_cameraOffsetX, mapHeight+0.05*Application::SCREEN_HEIGHT);
+    text.setCharacterSize(0.05*Application::SCREEN_HEIGHT);
+    text.setFillColor(sf::Color::White);
+    text.setPosition(point.x+m_cameraOffsetX, point.y+m_cameraOffsetY);
+    mTarget.draw(text);
+}
+
+void World::drawCurentLevelStatus()
+{
+    sf::Text text;
+    text.setString("Level " + std::to_string(m_currentLevelIndex) + " of " + std::to_string(m_levels.size()));
+    int mapHeight = (m_mapObj[0].size() - 1) * TILEFLOORHEIGHT + TILEHEIGHT;
+    sf::Vector2i point = sf::Vector2i(m_cameraOffsetX, mapHeight);
+    text.setFont(mFonts.get(Fonts::Main));
+    text.setFillColor(sf::Color::White);
+    text.setCharacterSize(0.05*Application::SCREEN_HEIGHT);
+    text.setPosition(point.x + m_cameraOffsetX, point.y + m_cameraOffsetY);
+    mTarget.draw(text);
+}
+
+void World::drawWinText()
+{
+    sf::Sprite sprite;
+    sprite.setTexture(mTextures.get(Textures::Solved));
+    sprite.setOrigin(sprite.getGlobalBounds().width/2.0f,
+                     sprite.getGlobalBounds().height/2.0f);
+    sprite.setPosition(Application::HALF_WIDTH, Application::HALF_HEIGHT);
+    mTarget.draw(sprite);
+}
+
+bool World::isWall(int x, int y)
+{
+    if(x < 0 || x >= int(m_mapObj.size()) || y < 0 || y >= int(m_mapObj[x].size()))
+    {
+        return false;
+    }
+    else if(m_mapObj[x][y] == '#' || m_mapObj[x][y] == 'x')
+    {
+        return true;
+    }
+    return false;
+}
+
+void World::floodFill(int x, int y, char oldChar, char newChar)
+{
+    if(m_mapObj[x][y] == oldChar)
+    {
+        m_mapObj[x][y] = newChar;
+    }
+
+    if(x < int(m_mapObj.size()-1) && m_mapObj[x+1][y] == oldChar)
+    {
+        floodFill(x+1, y, oldChar, newChar); // call right
+    }
+    if(x > 0 && m_mapObj[x-1][y] == oldChar)
+    {
+        floodFill(x-1, y, oldChar, newChar); // call left
+    }
+    if(y < int(m_mapObj[x].size()) && m_mapObj[x][y+1] == oldChar)
+    {
+        floodFill(x, y+1, oldChar, newChar); // call down
+    }
+    if(y > 0 && m_mapObj[x][y-1] == oldChar)
+    {
+        floodFill(x, y-1, oldChar, newChar); // call up
+    }
+}
+
+void World::nextLevel()
+{
+    m_currentLevelIndex++;
+    if(m_currentLevelIndex >= int(m_levels.size()))
+    {
+        m_currentLevelIndex = 0;
+    }
+    runLevel();
+}
+
+void World::previousLevel()
+{
+    m_currentLevelIndex--;
+    if(m_currentLevelIndex < 0)
+    {
+        m_currentLevelIndex = 0;
+    }
+    runLevel();
+}
+
+bool World::makeMove(std::string playerMoveTo)
+{
+    sf::Vector2i playerPos = m_gameStateObj.playerPos;
+    std::vector<sf::Vector2i> stars = m_gameStateObj.starsPos;
+    int xOffset = 0, yOffset = 0;
+    std::cout << "PM " << playerMoveTo << std::endl;
+    if(playerMoveTo == "UP")
+    {
+        xOffset = 0;
+        yOffset = -1;
+    }
+    else if(playerMoveTo == "RIGHT")
+    {
+        xOffset = 1;
+        yOffset = 0;
+    }
+    else if(playerMoveTo == "LEFT")
+    {
+        xOffset = -1;
+        yOffset = 0;
+    }
+    else if(playerMoveTo == "DOWN")
+    {
+        xOffset = 0;
+        yOffset = 1;
+    }
+
+    if( isWall(playerPos.x+xOffset, playerPos.y+yOffset))
+    {
+        return false;
+    }
+    else
+    {
+        if(std::find(stars.begin(), stars.end(), sf::Vector2i(playerPos.x + xOffset, playerPos.y + yOffset)) != stars.end())
+        {
+            if(!isBlocked(playerPos.x + (xOffset*2), playerPos.y + (yOffset*2)))
+            {
+                int index = -1;
+                for(int i = 0; i < int(stars.size()); ++i)
+                {
+                    if(stars.at(i) == sf::Vector2i(playerPos.x + xOffset, playerPos.y + yOffset))
+                    {
+                        index = i;
+                    }
+                }
+                if(index != -1)
+                {
+                    stars[index] = sf::Vector2i(stars[index].x+xOffset, stars[index].y+yOffset);
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+        m_gameStateObj.starsPos = stars;
+        m_gameStateObj.playerPos = sf::Vector2i(playerPos.x+xOffset, playerPos.y+yOffset);
+        return true;
+    }
+}
+
+bool World::isBlocked(int x, int y)
+{
+    if(isWall(x, y))
+    {
+        return true;
+    }
+    else if(x < 0 || x >= int(m_mapObj.size()) || y < 0 || y >= int(m_mapObj[x].size()))
+    {
+        return true;
+    }
+    else if( std::find(m_gameStateObj.starsPos.begin(), m_gameStateObj.starsPos.end(), sf::Vector2i(x,y)) != m_gameStateObj.starsPos.end() )
+    {
+        return true;
+    }
+    return false;
+}
+
+bool World::isLevelFinished()
+{
+    for(int i = 0; i < int(m_levelObj.goals.size()); ++i)
+    {
+        if( std::find(m_gameStateObj.starsPos.begin(), m_gameStateObj.starsPos.end(), m_levelObj.goals.at(i) ) == m_gameStateObj.starsPos.end() )
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+

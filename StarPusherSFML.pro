@@ -10,6 +10,7 @@ SOURCES += \
     src/states/game_state.cpp \
     src/states/state.cpp \
     src/states/state_stack.cpp \
+    src/states/title_state.cpp \
     src/world.cpp
 
 HEADERS += \
@@ -21,7 +22,9 @@ HEADERS += \
     src/states/game_state.h \
     src/states/state.h \
     src/states/state_stack.h \
+    src/states/title_state.h \
     src/unit.h \
+    src/utils/input.h \
     src/utils/resource_holder.h \
     src/utils/resource_identifiers.h \
     src/world.h

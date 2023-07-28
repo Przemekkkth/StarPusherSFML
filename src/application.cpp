@@ -7,21 +7,17 @@
 
 
 const sf::Time Application::TimePerFrame = sf::seconds(1.f/60.f);
-const int Application::SCREEN_WIDTH = 768;
-const int Application::SCREEN_HEIGHT = 700;
+const int Application::SCREEN_WIDTH  = 1024;
+const int Application::SCREEN_HEIGHT = 680;
+const int Application::HALF_WIDTH    = SCREEN_WIDTH/2;
+const int Application::HALF_HEIGHT   = SCREEN_HEIGHT/2;
 
 Application::Application()
-: mWindow(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Look At Cursor SFML", sf::Style::Close)
+: mWindow(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Star Pusher SFML", sf::Style::Close)
 , mTextures()
 , mStateStack(State::Context(mWindow, mTextures))
 {
     mWindow.setKeyRepeatEnabled(false);
-
-//    mFonts.load(Fonts::Main, 	"res/font/minecraft.ttf");
-
-//    mTextures.load(Textures::Buttons,		"res/sprite/buttons.png");
-
-
     registerStates();
     mStateStack.pushState(States::Game);
 }

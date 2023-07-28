@@ -15,6 +15,7 @@
 #include <list>
 #include "level.h"
 #include "game_data.h"
+#include "utils/input.h"
 
 // Forward declaration
 namespace sf
@@ -46,6 +47,7 @@ class World : private sf::NonCopyable
     private:
         sf::RenderWindow&					mTarget;
         TextureHolder						mTextures;
+        FontHolder                          mFonts;
 
         std::map<char, sf::Texture> TILEMAPPING;
         std::map<char, sf::Texture> OUTSIDEDECOMAPPING;
@@ -60,6 +62,7 @@ class World : private sf::NonCopyable
         bool m_mapNeedsRedraw;
         bool m_levelIsCompleted;
         int m_cameraOffsetX, m_cameraOffsetY;
+        Input m_input;
 
         const int TILEWIDTH;              //= 50;
         const int TILEHEIGHT;             //= 85;
@@ -73,5 +76,15 @@ class World : private sf::NonCopyable
         void runLevel();
         void drawTilemap(sf::FloatRect rect, const sf::Texture& tex);
         void drawMap();
+        void drawStepCounter();
+        void drawCurentLevelStatus();
+        void drawWinText();
+        bool isWall(int x, int y);
+        void floodFill(int x, int y, char oldChar, char newChar);
+        void nextLevel();
+        void previousLevel();
+        bool makeMove(std::string playerMoveTo);
+        bool isBlocked(int x, int y);
+        bool isLevelFinished();
 };
 #endif // WORLD_H

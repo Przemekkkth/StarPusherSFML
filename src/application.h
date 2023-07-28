@@ -14,6 +14,8 @@ class Application
     public:
         static const int SCREEN_WIDTH;
         static const int SCREEN_HEIGHT;
+        static const int HALF_WIDTH;
+        static const int HALF_HEIGHT;
                                 Application();
         void					run();
 
