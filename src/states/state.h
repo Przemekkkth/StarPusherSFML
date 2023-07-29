@@ -27,10 +27,11 @@ class State
 
         struct Context
         {
-            Context(sf::RenderWindow& window, TextureHolder& textures);
+            Context(sf::RenderWindow& window, TextureHolder& textures, FontHolder& fonts);
 
             sf::RenderWindow*	window;
             TextureHolder*		textures;
+            FontHolder*         fonts;
         };
 
     public:

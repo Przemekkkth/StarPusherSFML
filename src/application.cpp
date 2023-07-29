@@ -3,6 +3,7 @@
 #include "const/state_identifiers.h"
 #include "states/state.h"
 #include "states/game_state.h"
+#include "states/title_state.h"
 #include <iostream>
 
 
@@ -15,11 +16,16 @@ const int Application::HALF_HEIGHT   = SCREEN_HEIGHT/2;
 Application::Application()
 : mWindow(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Star Pusher SFML", sf::Style::Close)
 , mTextures()
-, mStateStack(State::Context(mWindow, mTextures))
+, mStateStack(State::Context(mWindow, mTextures, mFonts))
 {
     mWindow.setKeyRepeatEnabled(false);
     registerStates();
-    mStateStack.pushState(States::Game);
+    mStateStack.pushState(States::Title);
+
+    mTextures.load(Textures::SFML_LOGO,  "res/sprite/sfml-logo-small.png");
+    mTextures.load(Textures::AvatorLogo, "res/sprite/avatar.png");
+
+    mFonts.load(Fonts::Main, "res/fonts/juniory.ttf");
 }
 
 void Application::run()
@@ -74,5 +80,6 @@ void Application::render()
 
 void Application::registerStates()
 {
+    mStateStack.registerState<TitleState>(States::Title);
     mStateStack.registerState<GameState>(States::Game);
 }

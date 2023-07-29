@@ -13,7 +13,7 @@ namespace Textures
 {
     enum ID
     {
-        Eye, Hero,
+        SFML_LOGO, AvatorLogo,
         UncoveredGoal, CoveredGoal,
         Star, Corner, Wall, InsideFloor,
         OutsideFloor, Title, Solved,
