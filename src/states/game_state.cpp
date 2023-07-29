@@ -25,8 +25,12 @@ bool GameState::update(sf::Time dt)
 bool GameState::handleEvent(const sf::Event& event)
 {
     if (event.type == sf::Event::KeyReleased)
-    {
-
+    {       
+        if(event.key.code == sf::Keyboard::Backspace)
+        {
+            requestStackPop();
+            requestStackPush(States::Menu);
+        }
     }
 
     mWorld.processInput(event);

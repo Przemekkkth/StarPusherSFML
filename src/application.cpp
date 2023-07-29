@@ -4,6 +4,8 @@
 #include "states/state.h"
 #include "states/game_state.h"
 #include "states/title_state.h"
+#include "states/menu_state.h"
+#include "states/options_state.h"
 #include <iostream>
 
 
@@ -24,6 +26,7 @@ Application::Application()
 
     mTextures.load(Textures::SFML_LOGO,  "res/sprite/sfml-logo-small.png");
     mTextures.load(Textures::AvatorLogo, "res/sprite/avatar.png");
+    mTextures.load(Textures::Buttons,    "res/sprite/buttons.png");
 
     mFonts.load(Fonts::Main, "res/fonts/juniory.ttf");
 }
@@ -62,6 +65,26 @@ void Application::processInput()
 
         if (event.type == sf::Event::Closed)
             mWindow.close();
+        if (event.type == sf::Event::KeyReleased)
+        {
+            if(event.key.code == sf::Keyboard::Escape)
+            {
+                mWindow.close();
+            }
+            //Uncomment if you want to make screenshots
+                if(event.key.code == sf::Keyboard::O)
+                {
+                    static int index = 0;
+                    sf::Texture texture;
+                    texture.create(mWindow.getSize().x, mWindow.getSize().y);
+                    texture.update(mWindow);
+                    std::string filename = "app" + std::to_string(index) + ".png";
+                    if (texture.copyToImage().saveToFile(filename))
+                    {
+                        index++;
+                    }
+                }
+        }
     }
 }
 
@@ -82,4 +105,6 @@ void Application::registerStates()
 {
     mStateStack.registerState<TitleState>(States::Title);
     mStateStack.registerState<GameState>(States::Game);
+    mStateStack.registerState<OptionsState>(States::Options);
+    mStateStack.registerState<MenuState>(States::Menu);
 }

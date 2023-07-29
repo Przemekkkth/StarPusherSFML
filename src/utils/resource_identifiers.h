@@ -19,7 +19,7 @@ namespace Textures
         OutsideFloor, Title, Solved,
         Princess, Boy, Catgirl, Horngirl,
         Pinkgirl, Rock, ShortTree, TallTree,
-        UglyTree
+        UglyTree, Buttons
     };
 }
 
