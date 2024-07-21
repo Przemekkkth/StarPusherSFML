@@ -8,7 +8,7 @@
 #include <cmath>
 #include <limits>
 #include "states/game_state.h"
-#include "circle.h"
+
 #include "application.h"
 #include <iostream>
 #include <fstream>

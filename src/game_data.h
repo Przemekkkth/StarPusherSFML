@@ -1,7 +1,6 @@
 #ifndef GAME_DATA_H
 #define GAME_DATA_H
 
-#include <QPoint>
 #include <list>
 #include <SFML/System/Vector2.hpp>
 struct GameData

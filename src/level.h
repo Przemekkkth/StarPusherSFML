@@ -2,7 +2,6 @@
 #define LEVEL_H
 
 #include <list>
-#include <QPoint>
 #include "game_data.h"
 struct Level
 {
